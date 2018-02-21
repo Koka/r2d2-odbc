@@ -4,8 +4,11 @@ version = "0.1.0"
 authors = ["Konstantin Salikhov <koka58@yandex.ru>"]
 license = "MIT"
 description = "ODBC support for the r2d2 connection pool"
-repository = "https://github.com/koka/r2d2-odbc"
+repository = "https://github.com/Koka/r2d2-odbc"
+documentation = "https://docs.rs/r2d2_odbc"
+homepage = "https://github.com/Koka/r2d2-odbc"
 keywords = ["odbc", "sql", "pool", "database", "r2d2"]
+categories = ["database"]
 
 [lib]
 name = "r2d2_odbc"
@@ -20,3 +23,7 @@ path = "tests/test.rs"
 lazy_static = "1.0"
 r2d2 = "0.8"
 odbc = "0.9"
+
+[badges]
+travis-ci = { repository = "Koka/r2d2-odbc", branch = "master" }
+appveyor = { repository = "Koka/r2d2-odbc", branch = "master" }
