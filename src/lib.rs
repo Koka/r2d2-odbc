@@ -89,21 +89,24 @@ impl ODBCConnectionManager {
 ///     let manager = ODBCConnectionManager::new("DSN=PostgreSQL");
 ///     let pool = r2d2::Pool::new(manager).unwrap();
 ///
+///     let mut children = vec![];
 ///     for i in 0..10i32 {
 ///         let pool = pool.clone();
-///         thread::spawn(move || {
+///         children.push(thread::spawn(move || {
 ///             let pool_conn = pool.get().unwrap();
 ///             let conn = pool_conn.raw();
 ///             let stmt = Statement::with_parent(&conn).unwrap();
 ///             if let Data(mut stmt) = stmt.exec_direct("SELECT version()").unwrap() {
-///                 let cols = stmt.num_result_cols().unwrap();
 ///                 while let Some(mut cursor) = stmt.fetch().unwrap() {
 ///                     if let Some(val) = cursor.get_data::<&str>(0).unwrap() {
-///                         print!("   {}", val);
+///                         print!("THREAD {} {}", i, val);
 ///                     }
 ///                 }
 ///             }
-///         });
+///         }));
+///     }
+///     for child in children {
+///         let _ = child.join();
 ///     }
 /// }
 /// ```
