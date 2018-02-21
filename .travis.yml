@@ -29,7 +29,7 @@ before_script:
  - cargo install cargo-travis
  - export PATH=$HOME/.cargo/bin:$HOME/.local/bin:$PATH
 script:
- - cargo test --verbose --features travis
+ - cargo test --verbose
 after_success:
  - cargo coveralls
 env:
