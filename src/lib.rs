@@ -1,6 +1,7 @@
 //! ODBC support for the `r2d2` connection pool.
 extern crate r2d2;
 extern crate odbc;
+extern crate odbc_safe as safe;
 
 #[macro_use]
 extern crate lazy_static;
@@ -14,12 +15,18 @@ pub struct ODBCConnectionManager {
     connection_string: String
 }
 
-pub struct ODBCConnection<'a>(Connection<'a>);
+#[derive(Debug)]
+pub struct ODBCConnectionManagerTx {
+    connection_string: String
+}
 
-unsafe impl Send for ODBCConnection<'static> {}
+pub struct ODBCConnection<'a, AC: safe::AutocommitMode>(Connection<'a, AC>);
 
-impl <'a> ODBCConnection<'a> {
-    pub fn raw(&self) -> &Connection<'a> {
+unsafe impl Send for ODBCConnection<'static, safe::AutocommitOn> {}
+unsafe impl Send for ODBCConnection<'static, safe::AutocommitOff> {}
+
+impl <'a, AC: safe::AutocommitMode> ODBCConnection<'a, AC> {
+    pub fn raw(&self) -> &Connection<'a, AC> {
         &self.0
     }
 }
@@ -31,7 +38,7 @@ unsafe impl Sync for ODBCEnv {}
 unsafe impl Send for ODBCEnv {}
 
 #[derive(Debug)]
-pub struct ODBCError(Box<Error>);
+pub struct ODBCError(Box<dyn Error>);
 
 lazy_static! {
     static ref ENV: ODBCEnv = ODBCEnv(create_environment_v3().unwrap());
@@ -51,7 +58,7 @@ impl fmt::Display for ODBCError {
 
 impl From<DiagnosticRecord> for ODBCError {
     fn from(err: DiagnosticRecord) -> Self {
-        println!("OLOLO {}", err);
+        println!("ODBC ERROR {}", err);
         ODBCError(Box::new(err))
     }
 }
@@ -67,6 +74,16 @@ impl ODBCConnectionManager {
     pub fn new<S: Into<String>>(connection_string: S) -> ODBCConnectionManager
     {
         ODBCConnectionManager {
+            connection_string: connection_string.into()
+        }
+    }
+}
+
+impl ODBCConnectionManagerTx {
+    /// Creates a new `ODBCConnectionManagerTx`.
+    pub fn new<S: Into<String>>(connection_string: S) -> ODBCConnectionManagerTx
+    {
+        ODBCConnectionManagerTx {
             connection_string: connection_string.into()
         }
     }
@@ -111,12 +128,37 @@ impl ODBCConnectionManager {
 /// }
 /// ```
 impl r2d2::ManageConnection for ODBCConnectionManager {
-    type Connection = ODBCConnection<'static>;
+    type Connection = ODBCConnection<'static, safe::AutocommitOn>;
     type Error = ODBCError;
 
     fn connect(&self) -> std::result::Result<Self::Connection, Self::Error> {
         let env = &ENV.0;
         Ok(ODBCConnection(env.connect_with_connection_string(&self.connection_string)?))
+    }
+
+    fn is_valid(&self, _conn: &mut Self::Connection) -> std::result::Result<(), Self::Error> {
+        //TODO
+        Ok(())
+    }
+
+    fn has_broken(&self, _conn: &mut Self::Connection) -> bool {
+        //TODO
+        false
+    }
+}
+
+impl r2d2::ManageConnection for ODBCConnectionManagerTx {
+    type Connection = ODBCConnection<'static, safe::AutocommitOff>;
+    type Error = ODBCError;
+
+    fn connect(&self) -> std::result::Result<Self::Connection, Self::Error> {
+        let env = &ENV.0;
+        let conn = env.connect_with_connection_string(&self.connection_string)?;
+        let conn_result = conn.disable_autocommit();
+        match conn_result {
+            Ok(conn) => Ok(ODBCConnection(conn)),
+            _ => Err(ODBCError("Unable to use transactions".into()))
+        }
     }
 
     fn is_valid(&self, _conn: &mut Self::Connection) -> std::result::Result<(), Self::Error> {
