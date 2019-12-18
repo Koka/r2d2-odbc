@@ -22,7 +22,7 @@ path = "tests/test.rs"
 [dependencies]
 lazy_static = "1.0"
 r2d2 = "0.8"
-odbc = "0.15"
+odbc = "0.16"
 odbc-safe = "0.5"
 
 [badges]
