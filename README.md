@@ -1,4 +1,7 @@
 # r2d2-odbc
+
+# This crate is not maintained anymore
+
 [ODBC](https://github.com/Koka/odbc-rs) adapter for [r2d2](https://github.com/sfackler/r2d2) connection pool
 
 [![https://travis-ci.org/Koka/odbc-rs](https://travis-ci.org/Koka/r2d2-odbc.svg?branch=master)](https://travis-ci.org/Koka/r2d2-odbc)
